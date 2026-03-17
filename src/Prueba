@@ -1,0 +1,6 @@
+int contador_frecuencias = 0;
+while ( caracter_leido != EOF ) {
+    if ( caracter_leido > limite ) {
+        return total_caracteres;
+    }
+}
