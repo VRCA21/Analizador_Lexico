@@ -1,8 +1,10 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -62,7 +64,7 @@ class AnalizadorLexicoReservadas {
         }
     }
 
-    // Lógica del Autómata / Máquina de Estados
+    // Lógica del Autómata / Máquina de Estados con Traza Visual
     public Token obtenerSiguienteToken() {
         saltarEspacios();
 
@@ -73,18 +75,23 @@ class AnalizadorLexicoReservadas {
         int estado = 0;
         StringBuilder lexema = new StringBuilder();
 
+        System.out.println("\n--- Iniciando evaluación de nuevo lexema ---");
+
         while (true) {
             char c = (char) caracterActual;
+            int estadoAnterior = estado;
 
             switch (estado) {
                 case 0: // Estado inicial
                     if (Character.isLetter(c) || c == '_') {
                         estado = 1; // Transición para construir identificador
+                        System.out.printf("[q%d] -- lee '%c' --> [q%d]%n", estadoAnterior, c, estado);
                         lexema.append(c);
                         avanzar();
                     } else {
                         // Es un símbolo distinto (ej. llaves, operadores, números sueltos)
                         String simbolo = String.valueOf(c);
+                        System.out.printf("[q%d] -- lee '%c' --> [OTRO_SIMBOLO]%n", estadoAnterior, c);
                         avanzar();
                         return new Token(TipoToken.OTRO_SIMBOLO, simbolo);
                     }
@@ -92,14 +99,22 @@ class AnalizadorLexicoReservadas {
 
                 case 1: // Estado de aceptación y construcción
                     if (caracterActual != -1 && (Character.isLetterOrDigit(c) || c == '_')) {
+                        System.out.printf("[q%d] -- lee '%c' --> [q%d]%n", estadoAnterior, c, estado);
                         lexema.append(c);
                         avanzar(); // Seguir leyendo caracteres válidos
                     } else {
                         // Terminó la lectura del token. Validar si es palabra clave
                         String palabraFinal = lexema.toString();
+
+                        // Imprimir el carácter que rompió el ciclo
+                        String caracterRuptura = (caracterActual == -1) ? "EOF" : "'" + (char)caracterActual + "'";
+                        System.out.printf("[q%d] -- lee %s --> (Fin del lexema)%n", estadoAnterior, caracterRuptura);
+
                         if (palabrasClave.contains(palabraFinal)) {
+                            System.out.println("      -> ACEPTADO: PALABRA_CLAVE (" + palabraFinal + ")");
                             return new Token(TipoToken.PALABRA_CLAVE, palabraFinal);
                         } else {
+                            System.out.println("      -> ACEPTADO: IDENTIFICADOR (" + palabraFinal + ")");
                             return new Token(TipoToken.IDENTIFICADOR, palabraFinal);
                         }
                     }
@@ -129,23 +144,36 @@ public class Main {
         AnalizadorLexicoReservadas lexer = new AnalizadorLexicoReservadas(nombreArchivo);
         Token token;
 
+        // Lista para guardar los tokens encontrados
+        List<Token> tokensEncontrados = new ArrayList<>();
+
         System.out.println("\n--------------------------------------------------");
-        System.out.println("            RESULTADOS DEL ANALISIS               ");
-        System.out.println("--------------------------------------------------");
-        System.out.printf("%-20s | %s%n", "LEXEMA", "TIPO DE TOKEN");
+        System.out.println("            TRAZA DEL ANALIZADOR LÉXICO           ");
         System.out.println("--------------------------------------------------");
 
         do {
             token = lexer.obtenerSiguienteToken();
 
-            // Filtramos para mostrar solo los tokens que nos interesan
+            // Filtramos para guardar y contabilizar solo los que nos interesan
             if (token.tipo == TipoToken.PALABRA_CLAVE || token.tipo == TipoToken.IDENTIFICADOR) {
-                System.out.printf("%-20s | %s%n", token.lexema, token.tipo);
+                tokensEncontrados.add(token);
             }
 
         } while (token.tipo != TipoToken.FIN_DE_ARCHIVO);
 
-        System.out.println("--------------------------------------------------");
+        // Resumen Final
+        System.out.println("\n==================================================");
+        System.out.println("                 RESUMEN FINAL                    ");
+        System.out.println("==================================================");
+
+        System.out.println("Total de tokens válidos encontrados: " + tokensEncontrados.size());
+        System.out.println("\nDesglose de tokens:");
+
+        for (int i = 0; i < tokensEncontrados.size(); i++) {
+            Token t = tokensEncontrados.get(i);
+            System.out.printf(" %2d. %-20s | %s%n", (i + 1), t.lexema, t.tipo);
+        }
+        System.out.println("==================================================");
 
         lexer.cerrar();
         teclado.close();
