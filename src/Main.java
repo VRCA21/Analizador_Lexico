@@ -65,6 +65,7 @@ class AnalizadorLexicoReservadas {
     }
 
     // Lógica del Autómata / Máquina de Estados con Traza Visual
+    // Lógica del Autómata Explícito para TODAS las palabras clave del proyecto
     public Token obtenerSiguienteToken() {
         saltarEspacios();
 
@@ -81,44 +82,127 @@ class AnalizadorLexicoReservadas {
             char c = (char) caracterActual;
             int estadoAnterior = estado;
 
+            boolean esCaracterValido = (caracterActual != -1) && (Character.isLetterOrDigit(c) || c == '_');
+
             switch (estado) {
-                case 0: // Estado inicial
-                    if (Character.isLetter(c) || c == '_') {
-                        estado = 1; // Transición para construir identificador
-                        System.out.printf("[q%d] -- lee '%c' --> [q%d]%n", estadoAnterior, c, estado);
-                        lexema.append(c);
-                        avanzar();
-                    } else {
-                        // Es un símbolo distinto (ej. llaves, operadores, números sueltos)
+                case 0:
+                    if (!esCaracterValido) {
                         String simbolo = String.valueOf(c);
-                        System.out.printf("[q%d] -- lee '%c' --> [OTRO_SIMBOLO]%n", estadoAnterior, c);
+                        System.out.printf("[q0] -- lee '%c' --> [OTRO_SIMBOLO]%n", c);
                         avanzar();
                         return new Token(TipoToken.OTRO_SIMBOLO, simbolo);
                     }
+
+                    // Transiciones desde q0 para las primeras letras de TODAS tus palabras clave
+                    if (c == 'i') estado = 10;      // int, if
+                    else if (c == 'f') estado = 20; // float, for
+                    else if (c == 'c') estado = 30; // char, class
+                    else if (c == 'v') estado = 40; // void
+                    else if (c == 'e') estado = 50; // else
+                    else if (c == 'w') estado = 60; // while
+                    else if (c == 'r') estado = 70; // return
+                    else if (c == 'p') estado = 80; // public
+                    else if (c == 's') estado = 90; // struct
+                    else estado = 96;              // Identificador genérico (Ahora q96)
                     break;
 
-                case 1: // Estado de aceptación y construcción
-                    if (caracterActual != -1 && (Character.isLetterOrDigit(c) || c == '_')) {
-                        System.out.printf("[q%d] -- lee '%c' --> [q%d]%n", estadoAnterior, c, estado);
-                        lexema.append(c);
-                        avanzar(); // Seguir leyendo caracteres válidos
-                    } else {
-                        // Terminó la lectura del token. Validar si es palabra clave
-                        String palabraFinal = lexema.toString();
-
-                        // Imprimir el carácter que rompió el ciclo
-                        String caracterRuptura = (caracterActual == -1) ? "EOF" : "'" + (char)caracterActual + "'";
-                        System.out.printf("[q%d] -- lee %s --> (Fin del lexema)%n", estadoAnterior, caracterRuptura);
-
-                        if (palabrasClave.contains(palabraFinal)) {
-                            System.out.println("      -> ACEPTADO: PALABRA_CLAVE (" + palabraFinal + ")");
-                            return new Token(TipoToken.PALABRA_CLAVE, palabraFinal);
-                        } else {
-                            System.out.println("      -> ACEPTADO: IDENTIFICADOR (" + palabraFinal + ")");
-                            return new Token(TipoToken.IDENTIFICADOR, palabraFinal);
-                        }
+                // --- RAMA: i (int, if) ---
+                case 10:
+                    if (esCaracterValido) {
+                        if (c == 'n') estado = 11;
+                        else if (c == 'f') estado = 96; // 'if' completado
+                        else estado = 96;
                     }
                     break;
+                case 11: if (esCaracterValido) estado = (c == 't') ? 96 : 96; break; // 'int' completado
+
+                // --- RAMA: f (float, for) ---
+                case 20:
+                    if (esCaracterValido) {
+                        if (c == 'l') estado = 21;
+                        else if (c == 'o') estado = 25;
+                        else estado = 96;
+                    }
+                    break;
+                case 21: if (esCaracterValido) estado = (c == 'o') ? 22 : 96; break;
+                case 22: if (esCaracterValido) estado = (c == 'a') ? 23 : 96; break;
+                case 23: if (esCaracterValido) estado = (c == 't') ? 96 : 96; break; // 'float'
+                case 25: if (esCaracterValido) estado = (c == 'r') ? 96 : 96; break; // 'for'
+
+                // --- RAMA: c (char, class) ---
+                case 30:
+                    if (esCaracterValido) {
+                        if (c == 'h') estado = 31;
+                        else if (c == 'l') estado = 35;
+                        else estado = 96;
+                    }
+                    break;
+                case 31: if (esCaracterValido) estado = (c == 'a') ? 32 : 96; break;
+                case 32: if (esCaracterValido) estado = (c == 'r') ? 96 : 96; break; // 'char'
+                case 35: if (esCaracterValido) estado = (c == 'a') ? 36 : 96; break;
+                case 36: if (esCaracterValido) estado = (c == 's') ? 37 : 96; break;
+                case 37: if (esCaracterValido) estado = (c == 's') ? 96 : 96; break; // 'class'
+
+                // --- RAMA: void ---
+                case 40: if (esCaracterValido) estado = (c == 'o') ? 41 : 96; break;
+                case 41: if (esCaracterValido) estado = (c == 'i') ? 42 : 96; break;
+                case 42: if (esCaracterValido) estado = (c == 'd') ? 96 : 96; break; // 'void'
+
+                // --- RAMA: else ---
+                case 50: if (esCaracterValido) estado = (c == 'l') ? 51 : 96; break;
+                case 51: if (esCaracterValido) estado = (c == 's') ? 52 : 96; break;
+                case 52: if (esCaracterValido) estado = (c == 'e') ? 96 : 96; break; // 'else'
+
+                // --- RAMA: while ---
+                case 60: if (esCaracterValido) estado = (c == 'h') ? 61 : 96; break;
+                case 61: if (esCaracterValido) estado = (c == 'i') ? 62 : 96; break;
+                case 62: if (esCaracterValido) estado = (c == 'l') ? 63 : 96; break;
+                case 63: if (esCaracterValido) estado = (c == 'e') ? 96 : 96; break; // 'while'
+
+                // --- RAMA: return ---
+                case 70: if (esCaracterValido) estado = (c == 'e') ? 71 : 96; break;
+                case 71: if (esCaracterValido) estado = (c == 't') ? 72 : 96; break;
+                case 72: if (esCaracterValido) estado = (c == 'u') ? 73 : 96; break;
+                case 73: if (esCaracterValido) estado = (c == 'r') ? 74 : 96; break;
+                case 74: if (esCaracterValido) estado = (c == 'n') ? 96 : 96; break; // 'return'
+
+                // --- RAMA: public ---
+                case 80: if (esCaracterValido) estado = (c == 'u') ? 81 : 96; break;
+                case 81: if (esCaracterValido) estado = (c == 'b') ? 82 : 96; break;
+                case 82: if (esCaracterValido) estado = (c == 'l') ? 83 : 96; break;
+                case 83: if (esCaracterValido) estado = (c == 'i') ? 84 : 96; break;
+                case 84: if (esCaracterValido) estado = (c == 'c') ? 96 : 96; break; // 'public'
+
+                // --- RAMA: struct ---
+                case 90: if (esCaracterValido) estado = (c == 't') ? 91 : 96; break;
+                case 91: if (esCaracterValido) estado = (c == 'r') ? 92 : 96; break;
+                case 92: if (esCaracterValido) estado = (c == 'u') ? 93 : 96; break;
+                case 93: if (esCaracterValido) estado = (c == 'c') ? 94 : 96; break;
+                case 94: if (esCaracterValido) estado = (c == 't') ? 96 : 96; break; // 'struct'
+
+                // --- RAMA: Identificador genérico (q96) ---
+                case 96:
+                    if (esCaracterValido) estado = 96; // Bucle infinito hasta terminar la palabra
+                    break;
+            }
+
+            // --- EJECUCIÓN DEL MOVIMIENTO ---
+            if (esCaracterValido) {
+                System.out.printf("[q%d] -- lee '%c' --> [q%d]%n", estadoAnterior, c, estado);
+                lexema.append(c);
+                avanzar();
+            } else {
+                String palabraFinal = lexema.toString();
+                String caracterRuptura = (caracterActual == -1) ? "EOF" : "'" + (char)caracterActual + "'";
+                System.out.printf("[q%d] -- lee %s --> (Fin del lexema)%n", estadoAnterior, caracterRuptura);
+
+                if (palabrasClave.contains(palabraFinal)) {
+                    System.out.println("      -> ACEPTADO: PALABRA_CLAVE (" + palabraFinal + ")");
+                    return new Token(TipoToken.PALABRA_CLAVE, palabraFinal);
+                } else {
+                    System.out.println("      -> ACEPTADO: IDENTIFICADOR (" + palabraFinal + ")");
+                    return new Token(TipoToken.IDENTIFICADOR, palabraFinal);
+                }
             }
         }
     }
